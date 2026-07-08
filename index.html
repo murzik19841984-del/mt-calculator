@@ -551,6 +551,41 @@ function applyStateToDOM() {
 const SYM = { EUR:'€', RUB:'₽', USD:'$', USDT:'₮' };
 function fmtN(n) { return Math.round(n).toLocaleString('ru-RU'); }
 
+const HAS_APPS_SCRIPT = !!(window.google && google.script && google.script.run);
+const LOCAL_USER = 'github-pages-local';
+
+function ensureStorageAdapter() {
+  if (window.storage) return;
+  window.storage = {
+    async get(key) {
+      if (!HAS_APPS_SCRIPT) {
+        const value = localStorage.getItem(key);
+        return value === null ? null : { value };
+      }
+      return new Promise((resolve) => {
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(() => resolve(null))
+          .storageGet(key);
+      });
+    },
+    async set(key, value) {
+      if (!HAS_APPS_SCRIPT) {
+        localStorage.setItem(key, value);
+        return { ok:true };
+      }
+      return new Promise((resolve) => {
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(() => resolve(null))
+          .storageSet(key, value);
+      });
+    }
+  };
+}
+ensureStorageAdapter();
+
+
 // ══════════════════════════════════════════════════════════
 // RENDER CALC TAB
 // ══════════════════════════════════════════════════════════
@@ -1081,6 +1116,11 @@ const pct=n=>(isNaN(n)||!isFinite(n))?'—':Math.round(n*10)/10+'%';
 const eu=n=>Math.round(+n||0);
 
 async function stor(k, v) {
+  const value = JSON.stringify(v);
+  if (!HAS_APPS_SCRIPT) {
+    localStorage.setItem(k, value);
+    return { ok:true };
+  }
   return new Promise((resolve) => {
     google.script.run
       .withSuccessHandler(resolve)
@@ -1088,11 +1128,17 @@ async function stor(k, v) {
         console.error('stor error:', k, err);
         resolve(null);
       })
-      .storageSet(k, JSON.stringify(v));
+      .storageSet(k, value);
   });
 }
 
 async function load(k) {
+  if (!HAS_APPS_SCRIPT) {
+    try {
+      const value = localStorage.getItem(k);
+      return value ? JSON.parse(value) : null;
+    } catch(e) { return null; }
+  }
   return new Promise((resolve) => {
     google.script.run
       .withSuccessHandler(result => {
@@ -1104,6 +1150,23 @@ async function load(k) {
         resolve(null);
       })
       .storageGet(k);
+  });
+}
+
+async function loadAllStorage() {
+  if (!HAS_APPS_SCRIPT) {
+    const result = {};
+    ['mk-tours','mk-contracts','mk-facts6','mk-receipts','mk-manual-tours','mk-reg'].forEach(key => {
+      const value = localStorage.getItem(key);
+      if (value !== null) result[key] = value;
+    });
+    return result;
+  }
+  return new Promise((resolve) => {
+    google.script.run
+      .withSuccessHandler(resolve)
+      .withFailureHandler(() => resolve({}))
+      .storageGetAll();
   });
 }
 
@@ -1889,12 +1952,7 @@ function show(id,btn,sub){
 function showT(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
 
 async function init(){
-  const all = await new Promise((resolve) => {
-    google.script.run
-      .withSuccessHandler(resolve)
-      .withFailureHandler(() => resolve({}))
-      .storageGetAll();
-  });
+  const all = await loadAllStorage();
   function parseKey(key, fallback) {
     try { return all[key] ? JSON.parse(all[key]) : fallback; } catch(e) { return fallback; }
   }
@@ -1913,17 +1971,33 @@ async function init(){
   // Init new calculator
   await initCalcTab();
 }
-google.script.run
-  .withSuccessHandler(user => {
-    document.getElementById('user-email-display').textContent = user.email;
-    document.getElementById('auth-overlay').style.display = 'none';
-    init();
-  })
-  .withFailureHandler(err => {
-    document.getElementById('auth-status').textContent =
-      'Ошибка авторизации: ' + err.message;
-  })
-  .getCurrentUser();
+
+async function bootApp() {
+  if (HAS_APPS_SCRIPT) {
+    google.script.run
+      .withSuccessHandler(user => {
+        document.getElementById('user-email-display').textContent = user.email;
+        document.getElementById('auth-overlay').style.display = 'none';
+        init();
+      })
+      .withFailureHandler(err => {
+        document.getElementById('auth-status').textContent =
+          'Ошибка авторизации: ' + err.message;
+      })
+      .getCurrentUser();
+    return;
+  }
+  const userEl = document.getElementById('user-email-display');
+  if (userEl) userEl.textContent = LOCAL_USER;
+  const overlay = document.getElementById('auth-overlay');
+  if (overlay) overlay.style.display = 'none';
+  await init();
+}
+bootApp().catch(err => {
+  console.error(err);
+  const status = document.getElementById('auth-status');
+  if (status) status.textContent = 'Ошибка загрузки: ' + err.message;
+});
 
 // ══════════════════════════════════════════════════════════
 // СВЯЗУЮЩИЕ ФУНКЦИИ: реестр ↔ калькулятор
