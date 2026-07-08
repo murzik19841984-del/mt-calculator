@@ -891,6 +891,8 @@ function renderRefProgram(res, sym) {
   const referrerSaving  = referrerFullRnd - referrerDiscRnd;
   const fullTotalRnd = Math.round(s.rev + kFriends * refPrice);
   const savingsTotalRnd = referrerSaving + kFriends * saving;
+  const participantLabel = '\u0423\u0447\u0430\u0441\u0442\u043d\u0438\u043a';
+  const noDiscountMark = '\u2014';
 
   function trafficColor(m) {
     if (m >= 0.35) return { bg:'#EAF3DE', col:'#2D6A04', lbl:'Зона роста' };
@@ -1064,14 +1066,14 @@ function renderRefProgram(res, sym) {
     const pPriceRnd = Math.round(p.price);
     html += `
     <tr style="${rowNum%2===0?'background:var(--color-background-secondary)':''}">
-      <td style="padding:8px 12px;color:var(--color-text-secondary);border-bottom:0.5px solid var(--color-border-tertiary)">&#1059;&#1095;&#1072;&#1089;&#1090;&#1085;&#1080;&#1082; ${rowNum}</td>
+      <td style="padding:8px 12px;color:var(--color-text-secondary);border-bottom:0.5px solid var(--color-border-tertiary)">${participantLabel} ${rowNum}</td>
       <td style="padding:8px 12px;text-align:center;border-bottom:0.5px solid var(--color-border-tertiary)">
         <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:3px;background:var(--color-background-secondary);color:var(--color-text-secondary)">${p.cat}</span>
       </td>
       <td style="padding:8px 12px;text-align:right;border-bottom:0.5px solid var(--color-border-tertiary)">${fmtN(pPriceRnd)} ${sym}</td>
-      <td style="padding:8px 12px;text-align:center;color:var(--color-text-tertiary);border-bottom:0.5px solid var(--color-border-tertiary)">&mdash;</td>
+      <td style="padding:8px 12px;text-align:center;color:var(--color-text-tertiary);border-bottom:0.5px solid var(--color-border-tertiary)">${noDiscountMark}</td>
       <td style="padding:8px 12px;text-align:right;font-weight:700;border-bottom:0.5px solid var(--color-border-tertiary)">${fmtN(pPriceRnd)} ${sym}</td>
-      <td style="padding:8px 12px;text-align:right;color:var(--color-text-tertiary);border-bottom:0.5px solid var(--color-border-tertiary)">&mdash;</td>
+      <td style="padding:8px 12px;text-align:right;color:var(--color-text-tertiary);border-bottom:0.5px solid var(--color-border-tertiary)">${noDiscountMark}</td>
     </tr>`;
   });
   html += `</tbody>
