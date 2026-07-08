@@ -1254,7 +1254,7 @@ function pickDate(cid,iid,ds){
   const el=document.getElementById(iid);
   if(el)el.value=ds;
   const regMatch = iid.match(/^rg-d-(\d+)$/);
-  if (regMatch && REGISTRY[+regMatch[1]]) REGISTRY[+regMatch[1]].dates = ds;
+  if (regMatch && REGISTRY[+regMatch[1]]) { REGISTRY[+regMatch[1]].dates = ds; scheduleRegistrySave(); }
   document.getElementById(cid).style.display='none';
 }
 document.addEventListener('click',e=>{if(!e.target.closest('.cal-w')&&!e.target.closest('.cal-pop'))document.querySelectorAll('.cal-pop').forEach(c=>c.style.display='none');});
@@ -1282,21 +1282,21 @@ function renderReg(){
       const t=REGISTRY[ri];
       h+=`<div class="reg-row" data-ri="${ri}">
         <div>
-          <input data-field="id" value="${t.id||''}" placeholder="Код" oninput="REGISTRY[${ri}].id=this.value;populateSels()">
+          <input data-field="id" value="${t.id||''}" placeholder="Код" oninput="REGISTRY[${ri}].id=this.value;populateSels();scheduleRegistrySave()">
           <div class="cal-w" style="margin-top:2px">
             <input data-field="dates" value="${t.dates||''}" placeholder="даты" id="rg-d-${ri}" readonly onclick="toggleCal('rg-c-${ri}','rg-d-${ri}')" style="cursor:pointer;font-size:10px;background:#fff">
             <div class="cal-pop" id="rg-c-${ri}" style="display:none"></div>
           </div>
         </div>
-        <input data-field="name" value="${t.name||''}" placeholder="Название" oninput="REGISTRY[${ri}].name=this.value;populateSels()" style="font-weight:600">
-        <input data-field="dir" value="${t.dir||''}" placeholder="Направление" oninput="REGISTRY[${ri}].dir=this.value">
-        <input data-field="guide" value="${t.guide||''}" placeholder="Гид" oninput="REGISTRY[${ri}].guide=this.value">
+        <input data-field="name" value="${t.name||''}" placeholder="Название" oninput="REGISTRY[${ri}].name=this.value;populateSels();scheduleRegistrySave()" style="font-weight:600">
+        <input data-field="dir" value="${t.dir||''}" placeholder="Направление" oninput="REGISTRY[${ri}].dir=this.value;scheduleRegistrySave()">
+        <input data-field="guide" value="${t.guide||''}" placeholder="Гид" oninput="REGISTRY[${ri}].guide=this.value;scheduleRegistrySave()">
         <div style="display:flex;gap:3px;align-items:center">
-          <input data-field="docLink" value="${t.docLink||''}" placeholder="https://..." style="font-size:10px;flex:1" oninput="REGISTRY[${ri}].docLink=this.value">
+          <input data-field="docLink" value="${t.docLink||''}" placeholder="https://..." style="font-size:10px;flex:1" oninput="REGISTRY[${ri}].docLink=this.value;scheduleRegistrySave()">
           ${t.docLink?`<a href="${t.docLink}" target="_blank" title="Открыть документ"><button class="btn-sec" style="font-size:10px;padding:2px 5px;flex-shrink:0">↗</button></a>`:''}
         </div>
         <div style="display:flex;gap:3px;align-items:center;flex-wrap:wrap">
-          <select data-field="cur" style="width:52px;font-size:10px" onchange="REGISTRY[${ri}].cur=this.value">
+          <select data-field="cur" style="width:52px;font-size:10px" onchange="REGISTRY[${ri}].cur=this.value;scheduleRegistrySave()">
             <option value="EUR" ${t.cur==='EUR'||!t.cur?'selected':''}>EUR</option>
             <option value="RUB" ${t.cur==='RUB'?'selected':''}>RUB</option>
             <option value="USDT" ${t.cur==='USDT'?'selected':''}>USDT</option>
@@ -1304,7 +1304,7 @@ function renderReg(){
           <button class="btn-pri" style="font-size:10px;padding:3px 6px" onclick="openInCalc(${ri})">открыть</button>
           <button class="btn-sec" style="font-size:10px;padding:2px 5px" onclick="exportTourXlsx(${ri})" title="Выгрузить в Excel">⬇ xlsx</button>
         </div>
-        <button class="btn-del" onclick="REGISTRY.splice(${ri},1);renderReg();populateSels()">×</button>
+        <button class="btn-del" onclick="REGISTRY.splice(${ri},1);renderReg();populateSels();persistRegistryNow()">×</button>
       </div>`;
     });
   });
@@ -1320,10 +1320,27 @@ function syncRegistryFromDOM() {
     });
   });
 }
-function addRegTour(){REGISTRY.push({id:'НТ-'+Date.now().toString().slice(-4),dates:'',name:'Новый тур',dir:'',guide:'',year:'2026',month:'Прочие',cur:'EUR'});renderReg();populateSels();showT('Тур добавлен — заполни поля');}
-async function saveRegistry(){
+let registrySaveTimer = null;
+function persistRegistryNow() {
   syncRegistryFromDOM();
-  const res = await stor('mk-reg',REGISTRY);
+  return stor('mk-reg', REGISTRY);
+}
+function scheduleRegistrySave() {
+  if (registrySaveTimer) clearTimeout(registrySaveTimer);
+  registrySaveTimer = setTimeout(() => {
+    registrySaveTimer = null;
+    persistRegistryNow();
+  }, 250);
+}
+window.addEventListener('beforeunload', () => {
+  try {
+    syncRegistryFromDOM();
+    if (!HAS_APPS_SCRIPT) localStorage.setItem('mk-reg', JSON.stringify(REGISTRY));
+  } catch(e) {}
+});
+function addRegTour(){REGISTRY.push({id:'НТ-'+Date.now().toString().slice(-4),dates:'',name:'Новый тур',dir:'',guide:'',year:'2026',month:'Прочие',cur:'EUR'});renderReg();populateSels();persistRegistryNow();showT('Тур добавлен — автосохранён');}
+async function saveRegistry(){
+  const res = await persistRegistryNow();
   if (!res && HAS_APPS_SCRIPT) { showT('Не удалось сохранить реестр'); return; }
   populateSels();
   showT('Реестр сохранён');
