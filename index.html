@@ -1250,7 +1250,13 @@ function renderCal(cid,iid){
   document.getElementById(cid).innerHTML=h;
 }
 function mvCal(cid,iid,dir){const s=calSt[cid];s.m+=dir;if(s.m>11){s.m=0;s.y++;}if(s.m<0){s.m=11;s.y--;}renderCal(cid,iid);}
-function pickDate(cid,iid,ds){const el=document.getElementById(iid);if(el)el.value=ds;document.getElementById(cid).style.display='none';}
+function pickDate(cid,iid,ds){
+  const el=document.getElementById(iid);
+  if(el)el.value=ds;
+  const regMatch = iid.match(/^rg-d-(\d+)$/);
+  if (regMatch && REGISTRY[+regMatch[1]]) REGISTRY[+regMatch[1]].dates = ds;
+  document.getElementById(cid).style.display='none';
+}
 document.addEventListener('click',e=>{if(!e.target.closest('.cal-w')&&!e.target.closest('.cal-pop'))document.querySelectorAll('.cal-pop').forEach(c=>c.style.display='none');});
 
 // === REGISTRY ===
@@ -1274,23 +1280,23 @@ function renderReg(){
     h+=`<div class="month-lbl">${g.lbl}</div>`;
     g.idxs.forEach(ri=>{
       const t=REGISTRY[ri];
-      h+=`<div class="reg-row">
+      h+=`<div class="reg-row" data-ri="${ri}">
         <div>
-          <input value="${t.id||''}" placeholder="Код" oninput="REGISTRY[${ri}].id=this.value;populateSels()">
+          <input data-field="id" value="${t.id||''}" placeholder="Код" oninput="REGISTRY[${ri}].id=this.value;populateSels()">
           <div class="cal-w" style="margin-top:2px">
-            <input value="${t.dates||''}" placeholder="даты" id="rg-d-${ri}" readonly onclick="toggleCal('rg-c-${ri}','rg-d-${ri}')" style="cursor:pointer;font-size:10px;background:#fff">
+            <input data-field="dates" value="${t.dates||''}" placeholder="даты" id="rg-d-${ri}" readonly onclick="toggleCal('rg-c-${ri}','rg-d-${ri}')" style="cursor:pointer;font-size:10px;background:#fff">
             <div class="cal-pop" id="rg-c-${ri}" style="display:none"></div>
           </div>
         </div>
-        <input value="${t.name||''}" placeholder="Название" oninput="REGISTRY[${ri}].name=this.value;populateSels()" style="font-weight:600">
-        <input value="${t.dir||''}" placeholder="Направление" oninput="REGISTRY[${ri}].dir=this.value">
-        <input value="${t.guide||''}" placeholder="Гид" oninput="REGISTRY[${ri}].guide=this.value">
+        <input data-field="name" value="${t.name||''}" placeholder="Название" oninput="REGISTRY[${ri}].name=this.value;populateSels()" style="font-weight:600">
+        <input data-field="dir" value="${t.dir||''}" placeholder="Направление" oninput="REGISTRY[${ri}].dir=this.value">
+        <input data-field="guide" value="${t.guide||''}" placeholder="Гид" oninput="REGISTRY[${ri}].guide=this.value">
         <div style="display:flex;gap:3px;align-items:center">
-          <input value="${t.docLink||''}" placeholder="https://..." style="font-size:10px;flex:1" oninput="REGISTRY[${ri}].docLink=this.value">
+          <input data-field="docLink" value="${t.docLink||''}" placeholder="https://..." style="font-size:10px;flex:1" oninput="REGISTRY[${ri}].docLink=this.value">
           ${t.docLink?`<a href="${t.docLink}" target="_blank" title="Открыть документ"><button class="btn-sec" style="font-size:10px;padding:2px 5px;flex-shrink:0">↗</button></a>`:''}
         </div>
         <div style="display:flex;gap:3px;align-items:center;flex-wrap:wrap">
-          <select style="width:52px;font-size:10px" onchange="REGISTRY[${ri}].cur=this.value">
+          <select data-field="cur" style="width:52px;font-size:10px" onchange="REGISTRY[${ri}].cur=this.value">
             <option value="EUR" ${t.cur==='EUR'||!t.cur?'selected':''}>EUR</option>
             <option value="RUB" ${t.cur==='RUB'?'selected':''}>RUB</option>
             <option value="USDT" ${t.cur==='USDT'?'selected':''}>USDT</option>
@@ -1304,8 +1310,24 @@ function renderReg(){
   });
   document.getElementById('reg-list').innerHTML=h;
 }
+function syncRegistryFromDOM() {
+  document.querySelectorAll('.reg-row[data-ri]').forEach(row => {
+    const ri = +row.dataset.ri;
+    const t = REGISTRY[ri];
+    if (!t) return;
+    row.querySelectorAll('[data-field]').forEach(el => {
+      t[el.dataset.field] = el.value;
+    });
+  });
+}
 function addRegTour(){REGISTRY.push({id:'НТ-'+Date.now().toString().slice(-4),dates:'',name:'Новый тур',dir:'',guide:'',year:'2026',month:'Прочие',cur:'EUR'});renderReg();populateSels();showT('Тур добавлен — заполни поля');}
-function saveRegistry(){stor('mk-reg',REGISTRY);populateSels();showT('Реестр сохранён');}
+async function saveRegistry(){
+  syncRegistryFromDOM();
+  const res = await stor('mk-reg',REGISTRY);
+  if (!res && HAS_APPS_SCRIPT) { showT('Не удалось сохранить реестр'); return; }
+  populateSels();
+  showT('Реестр сохранён');
+}
 
 // populate all selects from REGISTRY (not TOURS!)
 function populateSels(){
