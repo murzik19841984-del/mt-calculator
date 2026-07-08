@@ -499,7 +499,9 @@ const INIT_ST = {
 let CST = JSON.parse(JSON.stringify(INIT_ST));
 let openCats = new Set(REF.categories);
 
-function saveCS() { /* хранение в памяти, сохранение через кнопки */ }
+function saveCS() {
+  try { window.storage?.set?.(CALC_KEY, JSON.stringify(CST)); } catch(e) {}
+}
 async function loadCS() {
   try {
     const r = await window.storage.get(CALC_KEY);
@@ -2003,9 +2005,43 @@ bootApp().catch(err => {
 // СВЯЗУЮЩИЕ ФУНКЦИИ: реестр ↔ калькулятор
 // ══════════════════════════════════════════════════════════
 
-function regKey(ri) {
+function legacyRegKey(ri) {
   const t = REGISTRY[ri];
   return ((t&&t.id)||'t').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'').substring(0,24)||'t'+ri;
+}
+function regKey(ri) { return 'tour-' + ri; }
+function savedTourFor(ri) { return TOURS[regKey(ri)] || TOURS[legacyRegKey(ri)] || null; }
+
+function syncCalcInputsFromDOM() {
+  document.querySelectorAll('.calc-inp').forEach(el => {
+    const id = el.id;
+    if (!id) return;
+    let val = el.value;
+    if (el.type === 'number') { val = parseFloat(val); if (isNaN(val)) val = 0; }
+    CST[id] = val;
+  });
+  document.querySelectorAll('#calc-tables [data-act]').forEach(inp => {
+    const key = inp.dataset.key;
+    if (!key) return;
+    if (inp.dataset.act === 'note') {
+      CST.item_notes[key] = inp.value;
+      return;
+    }
+    const rawVal = inp.value.replace(/[^0-9.]/g,'');
+    const val = parseFloat(rawVal)||0;
+    if      (inp.dataset.act === 'price') CST.custom_prices[key] = val;
+    else if (inp.dataset.act === 'qty')   CST.manual_qtys[key]   = val;
+    else if (inp.dataset.act === 'unfor') CST.unforeseen_pct     = val/100;
+  });
+  document.querySelectorAll('#calc-unit-econ input[data-cat]').forEach(inp => {
+    CST.markups[inp.dataset.cat] = parseFloat(inp.value)||0;
+  });
+  ['ref_disc_pct','ref_k_friends'].forEach(fid => {
+    const inp = document.getElementById(fid);
+    if (!inp) return;
+    const v = parseFloat(inp.value);
+    CST[fid] = isNaN(v) ? 0 : v;
+  });
 }
 
 // curRegIdx defined above
@@ -2023,8 +2059,8 @@ function openInCalc(ri) {
 
   // Загружаем сохранённые данные если есть
   const key = regKey(ri);
-  if (TOURS[key]) {
-    const saved = TOURS[key];
+  const saved = savedTourFor(ri);
+  if (saved) {
     CST = {
       ...JSON.parse(JSON.stringify(INIT_ST)),
       ...saved,
@@ -2047,12 +2083,20 @@ function openInCalc(ri) {
   showT('Загружен: ' + t.name);
 }
 
-function saveTour() {
+async function saveTour() {
   if (curRegIdx < 0) { showT('Сначала открой тур из реестра'); return; }
+  syncCalcInputsFromDOM();
   const t = REGISTRY[curRegIdx];
   const key = regKey(curRegIdx);
-  TOURS[key] = { ...CST, name: t.name, dir: t.dir };
-  stor('mk-tours', TOURS);
+  const legacyKey = legacyRegKey(curRegIdx);
+  const saved = { ...CST, name: t.name, dir: t.dir, registryId: t.id, registryIndex: curRegIdx };
+  TOURS[key] = saved;
+  TOURS[legacyKey] = saved;
+  const res = await stor('mk-tours', TOURS);
+  if (!res && HAS_APPS_SCRIPT) {
+    showT('Не удалось сохранить тур');
+    return;
+  }
   populateSels();
   showT('Тур «' + t.name + '» сохранён');
 }
