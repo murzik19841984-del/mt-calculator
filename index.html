@@ -1062,14 +1062,14 @@ function renderRefProgram(res, sym) {
     const pPriceRnd = Math.round(p.price);
     html += `
     <tr style="${rowNum%2===0?'background:var(--color-background-secondary)':''}">
-      <td style="padding:8px 12px;color:var(--color-text-secondary);border-bottom:0.5px solid var(--color-border-tertiary)">РЈС‡Р°СЃС‚РЅРёРє ${rowNum}</td>
+      <td style="padding:8px 12px;color:var(--color-text-secondary);border-bottom:0.5px solid var(--color-border-tertiary)">&#1059;&#1095;&#1072;&#1089;&#1090;&#1085;&#1080;&#1082; ${rowNum}</td>
       <td style="padding:8px 12px;text-align:center;border-bottom:0.5px solid var(--color-border-tertiary)">
         <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:3px;background:var(--color-background-secondary);color:var(--color-text-secondary)">${p.cat}</span>
       </td>
       <td style="padding:8px 12px;text-align:right;border-bottom:0.5px solid var(--color-border-tertiary)">${fmtN(pPriceRnd)} ${sym}</td>
-      <td style="padding:8px 12px;text-align:center;color:var(--color-text-tertiary);border-bottom:0.5px solid var(--color-border-tertiary)">вЂ”</td>
+      <td style="padding:8px 12px;text-align:center;color:var(--color-text-tertiary);border-bottom:0.5px solid var(--color-border-tertiary)">&mdash;</td>
       <td style="padding:8px 12px;text-align:right;font-weight:700;border-bottom:0.5px solid var(--color-border-tertiary)">${fmtN(pPriceRnd)} ${sym}</td>
-      <td style="padding:8px 12px;text-align:right;color:var(--color-text-tertiary);border-bottom:0.5px solid var(--color-border-tertiary)">вЂ”</td>
+      <td style="padding:8px 12px;text-align:right;color:var(--color-text-tertiary);border-bottom:0.5px solid var(--color-border-tertiary)">&mdash;</td>
     </tr>`;
   });
   html += `</tbody>
