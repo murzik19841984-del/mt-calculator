@@ -1,0 +1,194 @@
+<div style="position:relative">
+<div class="toast" id="toast"></div>
+<div class="hdr">
+  <div><div class="app-name">MK Tours — Реестр и калькулятор</div><div class="app-sub" id="hdr-sub">Реестр туров</div><span id="user-email-display" style="font-size:11px;color:var(--color-text-secondary);margin-left:12px"></span></div>
+  <svg width="68" height="32" viewBox="0 0 200 90" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:30px;width:auto;display:block">  <defs>    <linearGradient id="mkG" x1="0" y1="0" x2="1" y2="1">      <stop offset="0%" stop-color="#FFAA00"/>      <stop offset="100%" stop-color="#F23800"/>    </linearGradient>  </defs>  <rect x="8" y="2" width="26" height="80" rx="13" transform="rotate(-25 21 42)" fill="url(#mkG)"/>  <rect x="52" y="2" width="26" height="80" rx="13" transform="rotate(-25 65 42)" fill="url(#mkG)"/>  <rect x="96" y="2" width="26" height="80" rx="13" transform="rotate(-25 109 42)" fill="url(#mkG)"/>  <rect x="120" y="8" width="26" height="72" rx="13" transform="rotate(25 133 44)" fill="url(#mkG)"/>  <circle cx="185" cy="72" r="16" fill="url(#mkG)"/></svg>
+</div>
+<nav>
+  <button class="active" onclick="show('registry',this,'Реестр туров')">Реестр туров</button>
+  <button onclick="show('calc',this,'Калькулятор')">Калькулятор</button>
+</nav>
+<div class="screen on" id="s-registry">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;flex-wrap:wrap;gap:8px">
+    <div><div class="sec-h">Реестр туров</div><div class="sec-d" id="reg-sub">Загрузка...</div></div>
+    <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
+      <input id="reg-q" placeholder="Поиск..." style="width:140px;font-size:12px" oninput="renderReg()">
+      <select id="reg-f" style="font-size:12px;width:100px" onchange="renderReg()">
+        <option value="">Все</option><option value="2025">2025</option><option value="2026">2026</option><option value="calc">Калькулятор</option>
+      </select>
+      <button class="btn-pri" onclick="addRegTour()">+ Новый тур</button>
+      <button class="btn-sec" onclick="saveRegistry()">Сохранить</button>
+    </div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="reg-hdr"><span>Код / Дата</span><span>Название</span><span>Направление</span><span>Гид</span><span>Ссылка на документы</span><span>Действия</span><span></span></div>
+    <div id="reg-list"></div>
+  </div>
+</div>
+
+<!-- LEGACY SECTIONS - отключены на время разработки MVP -->
+<!-- 
+<div class="screen" id="s-contracts">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;flex-wrap:wrap;gap:8px">
+    <div><div class="sec-h">Договоры и поступления</div></div>
+    <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
+      <select id="ct-sel" onchange="renderContracts()" style="width:240px"></select>
+      <button class="btn-sec" onclick="addClient()">+ Клиент</button>
+      <button class="btn-pri" onclick="saveContracts()">Сохранить</button>
+    </div>
+  </div>
+  <div class="hint">Транши по договору — вводи суммы вручную, ставь статус после получения.</div>
+  <div class="g4" id="ct-kpis"></div>
+  <div id="clients-list"></div>
+</div>
+<div class="screen" id="s-fact">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;flex-wrap:wrap;gap:8px">
+    <div><div class="sec-h">Фактический результат тура</div></div>
+    <div style="display:flex;gap:7px"><select id="fact-sel" onchange="renderFact()" style="width:240px"></select><button class="btn-pri" onclick="saveFact()">Сохранить</button></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="sl">Поступления (из договоров)</div><div id="fact-rev-s"></div><div class="plr tot"><span>Итого поступлений</span><span id="fact-rev-t" style="color:#2D6A04;font-weight:800">—</span></div></div>
+    <div class="card"><div class="sl">Фактические расходы</div><div id="fact-costs-l"></div><button class="btn-sec" style="margin-top:5px" onclick="addFC()">+ расход</button><div class="plr tot" style="margin-top:7px"><span>Итого расходов</span><span id="fact-cost-t" style="color:#A32D2D;font-weight:800">—</span></div></div>
+  </div>
+  <div class="g4" id="fact-kpis"></div>
+  <div class="card"><div class="sl">План vs факт</div><div id="pvf-t"></div></div>
+</div>
+<div class="screen" id="s-receipts">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;flex-wrap:wrap;gap:8px">
+    <div><div class="sec-h">Расходы гидов по дням</div></div>
+    <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
+      <select id="rec-sel" onchange="renderReceipts()" style="width:240px"></select>
+      <button class="btn-pri" onclick="saveReceipts()">Сохранить</button>
+    </div>
+  </div>
+  <div class="hint">Суммы вводи целиком. Tab для перехода. Наличные и карта — раздельно.</div>
+  <div class="g2" style="margin-bottom:.5rem">
+    <div class="card" style="padding:.75rem 1rem">
+      <div class="sl">Новый аванс гиду</div>
+      <div class="row"><label>Гид</label><input id="rec-guide" placeholder="Марат"></div>
+      <div class="row"><label>Дата</label><div class="cal-w"><input id="rec-date" placeholder="выбери дату" readonly onclick="toggleCal('rec-date-cal','rec-date')" style="cursor:pointer;background:#fff"><div class="cal-pop" id="rec-date-cal" style="display:none"></div></div></div>
+      <div class="row"><label>Аванс</label><input id="rec-adv" type="text" inputmode="numeric" value="" placeholder="0"><span class="unit" id="rec-adv-unit" style="min-width:16px"></span></div>
+      <button class="btn-pri" style="width:100%;margin-top:6px" onclick="addGD()">Добавить аванс</button>
+    </div>
+    <div class="card" style="padding:.75rem 1rem"><div class="sl">Сводка по гидам</div><div id="guides-s"></div></div>
+  </div>
+  <div id="days-l"></div>
+  <div class="card"><div class="sl">Итог для бухгалтерии</div><div class="g4" id="rec-kpis"></div></div>
+</div>
+<div class="screen" id="s-compare">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem;flex-wrap:wrap;gap:8px">
+    <div><div class="sec-h">Сравнение туров</div><div class="sec-d">Выбери туры из реестра</div></div>
+    <button class="btn-sec" onclick="toggleMTF()">+ Добавить вручную</button>
+  </div>
+  <div class="card" style="padding:.75rem 1rem;margin-bottom:.75rem">
+    <div class="sl">Добавить из реестра</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <select id="cmp-reg-sel" style="flex:1"></select>
+      <button class="btn-pri" onclick="addFromRegToCmp()">Добавить в сравнение</button>
+    </div>
+    <div style="margin-top:.65rem;display:flex;flex-wrap:wrap;gap:3px" id="cmp-chips"></div>
+  </div>
+  <div id="mt-form" style="display:none;margin-bottom:.75rem">
+    <div class="card" style="padding:.75rem 1rem">
+      <div class="sl">Ввод тура вручную</div>
+      <div class="g2">
+        <div>
+          <div class="row"><label>Название</label><input id="mt-n" placeholder="Название тура"></div>
+          <div class="row"><label>Platinum</label><input id="mt-p" type="number" value="5"></div>
+          <div class="row"><label>Двойка</label><input id="mt-d" type="number" value="0"></div>
+          <div class="row"><label>Цена Platinum</label><input id="mt-pp" type="number" value="0"><span class="unit">€</span></div>
+        </div>
+        <div>
+          <div class="row"><label>Var/клиент Plat</label><input id="mt-vp" type="number" value="0"><span class="unit">€</span></div>
+          <div class="row"><label>Fix итого</label><input id="mt-fix" type="number" value="0"><span class="unit">€</span></div>
+          <div class="row"><label>Прибыль (если есть)</label><input id="mt-prf" type="number" placeholder="—"><span class="unit">€</span></div>
+        </div>
+      </div>
+      <button class="btn-pri" style="margin-top:.5rem" onclick="saveMT()">Добавить</button>
+    </div>
+  </div>
+  <div id="cmp-area"></div>
+</div>
+-->
+
+<div class="screen" id="s-calc">
+  <div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;margin-bottom:.75rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.85rem;flex-wrap:wrap;gap:8px">
+      <div>
+        <div class="sec-h" id="cn-d">— Выбери тур из реестра —</div>
+        <div class="sec-d" id="cs-d">Открой тур из реестра · нажми «открыть» напротив нужного тура</div>
+      </div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
+        <button class="btn-sec" onclick="resetCalc()">Сбросить</button>
+        <button class="btn-sec" onclick="togglePP()">Пресет</button>
+        <button class="btn-pri" onclick="saveTour()">Сохранить тур</button>
+      </div>
+    </div>
+    <div id="pp" style="display:none;margin-bottom:.75rem;padding:.6rem .9rem;background:var(--color-background-secondary);border-radius:var(--border-radius-md)">
+      <div class="sl">Сохранённые туры</div><div id="pl2"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr;gap:10px;margin-bottom:.75rem">
+      <div><div class="sl">Название</div><input id="tour_name" class="calc-inp" value="" placeholder="Название тура..."></div>
+      <div><div class="sl">Начало</div><input type="date" id="date_start" class="calc-inp"></div>
+      <div><div class="sl">Конец</div><input type="date" id="date_end" class="calc-inp"></div>
+      <div><div class="sl">Направление</div><select id="direction" class="calc-inp"><option value="">— выбрать —</option></select></div>
+      <div><div class="sl">Дней / Ночей</div>
+        <div style="display:flex;gap:4px">
+          <input type="number" id="n_days" value="1" disabled style="width:48%;background:#F1F5F9;font-size:12px;padding:5px 4px;text-align:center" title="Считается по датам">
+          <input type="number" id="n_nights" class="calc-inp" value="0" min="0" style="width:48%;text-align:center" placeholder="ноч">
+        </div>
+      </div>
+      <div><div class="sl">Ездовых дней</div><input type="number" id="riding_days" class="calc-inp" value="0" min="0"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr) 1fr 1fr 1fr 1fr;gap:10px;padding-top:.75rem;border-top:1px dashed var(--color-border-tertiary)">
+      <div><div class="sl" style="color:var(--mk)">Platinum</div><input type="number" id="r_platinum" class="calc-inp" value="0" min="0" style="border-color:var(--mk)"></div>
+      <div><div class="sl" style="color:#7C3AED">Diamond</div><input type="number" id="r_diamond" class="calc-inp" value="0" min="0" style="border-color:#7C3AED"></div>
+      <div><div class="sl" style="color:#0284C7">Normal</div><input type="number" id="r_normal" class="calc-inp" value="0" min="0" style="border-color:#0284C7"></div>
+      <div><div class="sl" style="color:#059669">Двойки (пасс.)</div><input type="number" id="p_pillions" class="calc-inp" value="0" min="0" style="border-color:#059669"></div>
+      <div><div class="sl">Сотрудники</div><input type="number" id="staff_qty" class="calc-inp" value="0" min="0"></div>
+      <div><div class="sl">Валюта</div>
+        <select id="currency" class="calc-inp">
+          <option value="EUR">EUR (€)</option><option value="RUB">RUB (₽)</option>
+          <option value="USD">USD ($)</option><option value="USDT">USDT</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:16px;align-items:flex-start">
+  <div style="flex:1;min-width:0">
+      <div id="calc-tables"></div>
+      <div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;border-top:3px solid var(--mk)">
+        <div style="font-size:13px;font-weight:700;margin-bottom:.6rem">Итоговый расчёт — Unit-экономика (через наценку на VC)</div>
+        <div id="calc-unit-econ"></div>
+        <div id="calc-summary"></div>
+      </div>
+    </div>
+    <div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;margin-top:.75rem;border-top:3px solid #2D6A04">
+      <div id="calc-ref-program"></div>
+    </div>
+  
+</div>
+
+<!-- LEGACY: tour-calendar отключена на время разработки MVP -->
+<!--
+<div class="screen" id="s-tour-calendar">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;flex-wrap:wrap;gap:8px">
+    <div><div class="sec-h">Календарь туров</div><div class="sec-d">Недельное и месячное отображение · цвет по гиду · занятость по договорам</div></div>
+    <div style="display:flex;gap:7px;align-items:center">
+      <button class="btn-sec" onclick="calPrev()" style="font-size:16px;padding:4px 12px">‹</button>
+      <span id="cal-period-label" style="font-size:14px;font-weight:700;min-width:180px;text-align:center"></span>
+      <button class="btn-sec" onclick="calNext()" style="font-size:16px;padding:4px 12px">›</button>
+      <button class="btn-sec" onclick="calToday()">Сегодня</button>
+      <div style="display:flex;gap:0;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);overflow:hidden">
+        <button id="cal-btn-week"  onclick="setCalView('week')"  style="padding:5px 12px;font-size:11px;font-weight:600;font-family:var(--font);border:none;cursor:pointer;background:var(--mk);color:#fff">Неделя</button>
+        <button id="cal-btn-month" onclick="setCalView('month')" style="padding:5px 12px;font-size:11px;font-weight:600;font-family:var(--font);border:none;cursor:pointer;background:var(--color-background-primary);color:var(--color-text-secondary)">Месяц</button>
+      </div>
+    </div>
+  </div>
+  <div id="cal-legend" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:.75rem"></div>
+  <div id="cal-grid" style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:visible;position:relative"></div>
+  <div id="cal-tooltip" style="position:absolute;z-index:999;background:#1E293B;color:#fff;padding:8px 12px;border-radius:8px;font-size:12px;pointer-events:none;display:none;max-width:260px;line-height:1.5"></div>
+</div>
+-->
+
+</div>
